@@ -86,6 +86,14 @@ VecT vecFromJson(const json& json, std::string_view name)
     return result;
 }
 
+// Primary template: assume T is not a std::vector
+template <typename T>
+struct is_vector : std::false_type {};
+
+// Specialized version for all std::vector types
+template <typename N, typename Allocator>
+struct is_vector<std::vector<N, Allocator>> : std::true_type {};
+
 template<typename T>
 T valueFromJson(const json& json, std::string_view name)
 {
@@ -142,6 +150,19 @@ T valueFromJson(const json& json, std::string_view name)
     else if constexpr (std::is_same_v<T, float2> || std::is_same_v<T, float3> || std::is_same_v<T, float4>)
     {
         return vecFromJson<T>(json, name);
+    }
+    else if constexpr (is_vector<T>::value)
+    {
+        if (!json.is_array())
+            FALCOR_THROW("Property '{}' is not an array.", name);
+        T result;
+        for (const auto& element : json)
+            result.push_back(valueFromJson<typename T::value_type>(element, name));
+        return result;
+    }
+    else
+    {
+        FALCOR_THROW("Property '{}' is not a supported type.", name);
     }
 }
 
@@ -488,6 +509,7 @@ EXPORT_PROPERTY_ACCESSOR(float2)
 EXPORT_PROPERTY_ACCESSOR(float3)
 EXPORT_PROPERTY_ACCESSOR(float4)
 EXPORT_PROPERTY_ACCESSOR(Properties)
+EXPORT_PROPERTY_ACCESSOR(std::vector<std::string>)
 
 #undef EXPORT_PROPERTY_ACCESSOR
 
