@@ -616,6 +616,10 @@ void Bitmap::saveImage(
             {
                 flags |= EXR_B44 | EXR_ZIP;
             }
+            else if (is_set(exportFlags, ExportFlags::Lossless))
+            {
+                flags |= EXR_FLOAT | EXR_ZIP;
+            }
         }
     }
     else

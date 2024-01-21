@@ -245,7 +245,7 @@ namespace Mogwai
             auto ext = Bitmap::getFileExtFromResourceFormat(pTex->getFormat());
             auto fileformat = Bitmap::getFormatFromFileExtension(ext);
             std::string filename = basename + suffix + "." + ext;
-            Bitmap::ExportFlags flags = Bitmap::ExportFlags::None;
+            Bitmap::ExportFlags flags = Bitmap::ExportFlags::Lossless;
             if (mask == TextureChannelFlags::RGBA) flags |= Bitmap::ExportFlags::ExportAlpha;
 
             pTex->captureToFile(0, 0, filename, fileformat, flags);
