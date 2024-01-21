@@ -167,7 +167,7 @@ struct PathTracer
 
     /** Set guiding data when background is hit.
     */
-    static void setBackgroundGuideData(inout GuideData guideData, const float3 dir, const float3 Le)
+    static void setBackgroundGuideData(inout GuideData guideData, const float3 dir, const float3 Le, const float3 envLight)
     {
         if (kOutputGuideData)
         {
@@ -178,6 +178,7 @@ struct PathTracer
             guideData.setSpecularAlbedo(float3(0.f));
             guideData.setIndirectAlbedo(float3(0.f));
             guideData.setReflectionPos(float3(0.f));
+            guideData.setEnvLight(envLight);
         }
     }
 
@@ -886,7 +887,10 @@ struct PathTracer
 
         float3 attenuatedEmission = 0.f;
 
-        if (computeEmissive && any(bsdfProperties.emission > 0.f))
+        // if (computeEmissive && any(bsdfProperties.emission > 0.f))
+        // Exclude primary light emission (will be accumulated later)
+        // if (computeEmissive && any(bsdfProperties.emission > 0.f))
+        if (!isPrimaryHit && computeEmissive && any(bsdfProperties.emission > 0.f))
         {
             float misWeight = 1.f;
             if (kUseEmissiveLights && kUseNEE && kUseMIS && isTriangleHit && !isPrimaryHit && path.isLightSampled() && isLightSamplable)
@@ -1007,6 +1011,8 @@ struct PathTracer
                     logTraceRay(PixelStatsRayType::Visibility);
                     bool visible = vq.traceVisibilityRay(ray);
                     if (visible) addToPathContribution(path, Lr);
+                    if (visible && isPrimaryHit)
+                        path.guideData.setVisibility(1.f);
                 }
             }
         }

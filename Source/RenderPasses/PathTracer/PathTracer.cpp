@@ -57,6 +57,8 @@ namespace
     const std::string kOutputIndirectAlbedo = "indirectAlbedo";
     const std::string kOutputGuideNormal = "guideNormal";
     const std::string kOutputReflectionPosW = "reflectionPosW";
+    const std::string kOutputEnvLight = "envLight";
+    const std::string kOutputVisibility = "visibility";
     const std::string kOutputRayCount = "rayCount";
     const std::string kOutputPathLength = "pathLength";
     const std::string kOutputNRDDiffuseRadianceHitDist = "nrdDiffuseRadianceHitDist";
@@ -81,11 +83,13 @@ namespace
     const Falcor::ChannelList kOutputChannels =
     {
         { kOutputColor,                                     "",     "Output color (linear)", true /* optional */, ResourceFormat::RGBA32Float },
-        { kOutputAlbedo,                                    "",     "Output albedo (linear)", true /* optional */, ResourceFormat::RGBA8Unorm },
-        { kOutputSpecularAlbedo,                            "",     "Output specular albedo (linear)", true /* optional */, ResourceFormat::RGBA8Unorm },
+        { kOutputAlbedo,                                    "",     "Output albedo (linear)", true /* optional */, ResourceFormat::RGBA16Float },
+        { kOutputSpecularAlbedo,                            "",     "Output specular albedo (linear)", true /* optional */, ResourceFormat::RGBA16Float },
         { kOutputIndirectAlbedo,                            "",     "Output indirect albedo (linear)", true /* optional */, ResourceFormat::RGBA8Unorm },
         { kOutputGuideNormal,                               "",     "Output guide normal (linear)", true /* optional */, ResourceFormat::RGBA16Float },
         { kOutputReflectionPosW,                            "",     "Output reflection pos (world space)", true /* optional */, ResourceFormat::RGBA32Float },
+        { kOutputEnvLight,                                  "",     "Output environment light", true /* optional */, ResourceFormat::RGBA32Float },
+        { kOutputVisibility,                                "",     "Output visibility", true /* optional */, ResourceFormat::R16Float },
         { kOutputRayCount,                                  "",     "Per-pixel ray count", true /* optional */, ResourceFormat::R32Uint },
         { kOutputPathLength,                                "",     "Per-pixel path length", true /* optional */, ResourceFormat::R32Uint },
         // NRD outputs
@@ -1199,7 +1203,8 @@ bool PathTracer::beginFrame(RenderContext* pRenderContext, const RenderData& ren
     // Check if guide data should be generated.
     mOutputGuideData = renderData[kOutputAlbedo] != nullptr || renderData[kOutputSpecularAlbedo] != nullptr
         || renderData[kOutputIndirectAlbedo] != nullptr || renderData[kOutputGuideNormal] != nullptr
-        || renderData[kOutputReflectionPosW] != nullptr;
+        || renderData[kOutputReflectionPosW] != nullptr || renderData[kOutputEnvLight] != nullptr
+        || renderData[kOutputVisibility] != nullptr;
 
     // Check if NRD data should be generated.
     mOutputNRDData =
@@ -1358,6 +1363,8 @@ void PathTracer::resolvePass(RenderContext* pRenderContext, const RenderData& re
     var["outputIndirectAlbedo"] = renderData.getTexture(kOutputIndirectAlbedo);
     var["outputGuideNormal"] = renderData.getTexture(kOutputGuideNormal);
     var["outputReflectionPosW"] = renderData.getTexture(kOutputReflectionPosW);
+    var["outputEnvLight"] = renderData.getTexture(kOutputEnvLight);
+    var["outputVisibility"] = renderData.getTexture(kOutputVisibility);
     var["outputNRDDiffuseRadianceHitDist"] = renderData.getTexture(kOutputNRDDiffuseRadianceHitDist);
     var["outputNRDSpecularRadianceHitDist"] = renderData.getTexture(kOutputNRDSpecularRadianceHitDist);
     var["outputNRDDeltaReflectionRadianceHitDist"] = renderData.getTexture(kOutputNRDDeltaReflectionRadianceHitDist);

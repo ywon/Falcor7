@@ -36,7 +36,9 @@ struct GuideData
 {
     uint4 data;
     float3 reflectionPos;
-    float dummy;
+    uint envLight;
+    float visibility;
+    float3 dummy;
 
     float3 getAlbedo()
     {
@@ -86,5 +88,25 @@ struct GuideData
     [mutating] void setReflectionPos(float3 pos)
     {
         reflectionPos = pos;
+    }
+
+    float3 getEnvLight()
+    {
+        return unpackR11G11B10(envLight);
+    }
+
+    [mutating] void setEnvLight(float3 env)
+    {
+        envLight = packR11G11B10(env);
+    }
+
+    float getVisibility()
+    {
+        return visibility;
+    }
+
+    [mutating] void setVisibility(float vis)
+    {
+        visibility = vis;
     }
 };

@@ -61,6 +61,8 @@ struct ResolvePass
     RWTexture2D<float4> outputIndirectAlbedo;               ///< Output resolved indirect albedo. Only valid if kOutputGuideData == true.
     RWTexture2D<float4> outputGuideNormal;                  ///< Output resolved guide normal. Only valid if kOutputGuideData == true.
     RWTexture2D<float4> outputReflectionPosW;               ///< Output resolved reflection pos. Only valid if kOutputGuideData == true.
+    RWTexture2D<float4> outputEnvLight;                     ///< Output environment light. kOutputEnvLight == true.
+    RWTexture2D<float4> outputVisibility;                   ///< Output visibility. kOutputVisibility == true.
 
     RWTexture2D<float4> outputNRDDiffuseRadianceHitDist;            ///< Output resolved diffuse radiance in .rgb and hit distance in .a for NRD. Only valid if kOutputNRDData == true.
     RWTexture2D<float4> outputNRDSpecularRadianceHitDist;           ///< Output resolved specular radiance in .rgb and hit distance in .a for NRD. Only valid if kOutputNRDData == true.
@@ -110,6 +112,8 @@ struct ResolvePass
             float3 indirectAlbedo = float3(0.f);
             float3 guideNormal = float3(0.f);
             float3 reflectionPosW = float3(0.f);
+            float3 envLight = float3(0.f);
+            float visibility = 0.f;
 
             for (uint sampleIdx = 0; sampleIdx < spp; sampleIdx++)
             {
@@ -119,6 +123,8 @@ struct ResolvePass
                 indirectAlbedo += sampleGuideData[idx].getIndirectAlbedo();
                 guideNormal += sampleGuideData[idx].getGuideNormal();
                 reflectionPosW += sampleGuideData[idx].getReflectionPos();
+                envLight += sampleGuideData[idx].getEnvLight();
+                visibility += sampleGuideData[idx].getVisibility();
             }
 
             outputAlbedo[pixel] = float4(invSpp * albedo, 0.f);
@@ -126,6 +132,8 @@ struct ResolvePass
             outputIndirectAlbedo[pixel] = float4(invSpp * indirectAlbedo, 0.f);
             outputGuideNormal[pixel] = float4(invSpp * guideNormal, 0.f);
             outputReflectionPosW[pixel] = float4(invSpp * reflectionPosW, 0.f);
+            outputEnvLight[pixel] = float4(invSpp * envLight, 0.f);
+            outputVisibility[pixel] = invSpp * visibility;
         }
 
         // NRD data is always written per-sample and needs to be resolved.
