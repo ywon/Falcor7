@@ -2,13 +2,13 @@ from falcor import *
 
 import os
 
-out_dir = "C:/Users/hchoi/repositories/Falcor/output"
+OUT_DIR = "C:/Users/hchoi/repositories/Falcor/output"
 
 INTERACTIVE = False
 
-NAME = "BistroExterior2"
-FILE = "C:/Users/hchoi/repositories/ORCA/Bistro/BistroExterior.pyscene"
-ANIM = [1400, 1410]
+NAME = "MEASURE_SEVEN_COLORED_LIGHTS"
+FILE = "C:/Users/hchoi/repositories/ORCA/ZeroDay/MEASURE_SEVEN/MEASURE_SEVEN_COLORED_LIGHTS.pyscene"
+ANIM = [100, 110]
 METHOD = "input"
 REF_COUNT = 8192
 FILELOAD_STARTFRAME = 0
@@ -51,9 +51,9 @@ def add_path(g, gbuf):
 def add_gbuffer(g, center=True):
 
     if center:
-        GBufferRaster = createPass("GBufferRaster", {'sampleCount': 1, 'useAlphaTest': True}) # for input and svgf
+        GBufferRaster = createPass("GBufferRaster", {'samplePattern': 'Center', 'sampleCount': 1, 'useAlphaTest': True}) # for input and svgf
     else:
-        GBufferRaster = createPass("GBufferRaster", {'sampleCount': 1, 'useAlphaTest': True}) # for input and svgf
+        GBufferRaster = createPass("GBufferRaster", {'samplePattern': 'Stratified', 'sampleCount': 1, 'useAlphaTest': True}) # for input and svgf
     gbuf = "GBufferRaster"
     g.addPass(GBufferRaster, gbuf)
     return gbuf
@@ -72,7 +72,7 @@ def add_fileload(g):
         'position': 'posW',
         'pnFwidth': 'pnFwidth',
     }
-    input_dir = f"//CGLAB-NAS/NFSStorage/dataset_reproj/data_{NAME}"
+    input_dir = f"output/"
     # input_dir = f"./data"
     FileloadPassGbuf = createPass("FileloadPass", {
         'directory': input_dir,
@@ -126,50 +126,14 @@ def add_svgf(g, gbuffer, path):
     return svgf
 
 
-def add_capture(g, pairs, start, end, opts=None):
-
-    channels = list(pairs.keys())
-    inputs = list(pairs.values())
-
-    for input in inputs:
-        g.markOutput(input)
-
-    # options = {
-    #         'directory': out_dir,
-    #         'channels': channels,
-    #         'exitAtEnd': True,
-    #         'accumulate': False,
-    #         'writeStart': 0,    # Control frame number in below
-    #         'writeEnd': 10000,  # Control frame number in below
-    #         'captureCameraMat': False,
-    #         'includeAlpha': ["specRough", "diffuseOpacity", "specRough2", "diffuseOpacity2"],
-    # }
-    # if opts is not None:
-    #     options.update(opts)
-    # CapturePass = createPass("CapturePass", options)
-
-    # capture = "CapturePass"
-    # g.addPass(CapturePass, capture)
-
-    # def addEdgeOutput(input, channel):
-    #     g.addEdge(input, f"{capture}.{channel}")
-    #     g.markOutput(f"{capture}.{channel}")
-
-    # for input, channel in zip(inputs, channels):
-    #     addEdgeOutput(input, channel)
-
-    # return capture
-
-
 def render_ref(start, end):
     g = RenderGraph("PathGraph")
     # Load libraries
 
     # Create pass
-    GBufferRaster = createPass("GBufferRaster", {'useAlphaTest': True})
+    GBufferRaster = createPass("GBufferRaster", {'samplePattern': 'Stratified', 'sampleCount': 1, 'useAlphaTest': True})
     PathTracer = createPass("PathTracer", {'samplesPerPixel': 1})
     AccumulatePass = createPass("AccumulatePass", {'enabled': True})
-    AccumulatePass2 = createPass("AccumulatePass", {'enabled': True})
     AccumulatePass3 = createPass("AccumulatePass", {'enabled': True})
     AccumulatePass4 = createPass("AccumulatePass", {'enabled': True})
     AccumulatePass5 = createPass("AccumulatePass", {'enabled': True})
@@ -177,33 +141,29 @@ def render_ref(start, end):
     # Add pass
     g.addPass(GBufferRaster, "GBufferRaster")
     g.addPass(PathTracer, "PathTracer")
-    g.addPass(AccumulatePass, "AccumulatePass")
-    g.addPass(AccumulatePass2, "AccumulatePass2")
-    g.addPass(AccumulatePass3, "AccumulatePass3")
-    g.addPass(AccumulatePass4, "AccumulatePass4")
-    g.addPass(AccumulatePass5, "AccumulatePass5")
+    g.addPass(AccumulatePass, "ref_color")
+    g.addPass(AccumulatePass3, "ref_envLight")
+    g.addPass(AccumulatePass4, "ref_emissive")
+    g.addPass(AccumulatePass5, "ref_visibility")
 
     # Pass G-buffer to path tracer
     g.addEdge("GBufferRaster.vbuffer", "PathTracer.vbuffer")
-    g.addEdge("GBufferRaster.emissive", "AccumulatePass4.input")
-    g.addEdge("PathTracer.color", "AccumulatePass.input")
-    g.addEdge("PathTracer.envLight", "AccumulatePass3.input")
-    g.addEdge("PathTracer.visibility", "AccumulatePass5.input")
 
-    pairs = {
-        'ref': 'AccumulatePass.output',
-        'ref_demodul': 'AccumulatePass2.output',
-        'ref_envLight': 'AccumulatePass3.output',
-        'ref_emissive': 'AccumulatePass4.output',
-        'ref_visibility': 'AccumulatePass5.output'
-    }
-    opts = {
-        'accumulate': True,
-        'accumulateCount': REF_COUNT,
-    }
+    # Accumulate
+    g.addEdge("PathTracer.color", "ref_color.input")
+    g.addEdge("PathTracer.envLight", "ref_envLight.input")
+    g.addEdge("GBufferRaster.emissive", "ref_emissive.input")
+    g.addEdge("PathTracer.visibility", "ref_visibility.input")
 
-    add_capture(g, pairs, start, end, opts)
-    g.markOutput("PathTracer.color")
+    if not INTERACTIVE:
+        outputs = [
+            'ref_color.output',
+            'ref_envLight.output',
+            'ref_emissive.output',
+            'ref_visibility.output'
+        ]
+        for input in outputs:
+            g.markOutput(input)
 
     return g
 
@@ -214,44 +174,38 @@ def render_input(start, end):
     gbuf = add_gbuffer(g, center=True)
     path = add_path(g, gbuf)
 
-    # Connect input/output
-    pairs = {
-        # PathTracer
-        'path': f"{path}.color",
-        'envLight': f"{path}.envLight",
-        'visibility': f"{path}.visibility",
-        'albedo': f"{path}.albedo",
-        # 'indirectAlbedo': f"{path}.indirectAlbedo",
-        'reflectionPosW': f"{path}.reflectionPosW",
-        'viewAlbedo': f"{path}.specularAlbedo",
-        # 'indirectEmissive': f"{path}.indirectEmissive",
-        # "primaryDelta": f"{path}.primaryDelta",
-
-        # "nrdEmission": f"{path}.nrdEmission",
-        # "nrdDiffuseReflectance": f"{path}.nrdDiffuseReflectance",
-        # "nrdSpecularReflectance": f"{path}.nrdSpecularReflectance",
-        "nrdDeltaReflectionReflectance": f"{path}.nrdDeltaReflectionReflectance",
-        # "nrdDeltaReflectionEmission": f"{path}.nrdDeltaReflectionEmission",
-        # "nrdDeltaTransmissionReflectance": f"{path}.nrdDeltaTransmissionReflectance",
-        # "nrdDeltaTransmissionEmission": f"{path}.nrdDeltaTransmissionEmission",
-        # "nrdDeltaTransmissionPosW": f"{path}.nrdDeltaTransmissionPosW",
-
-        # GBufferRaster
-        'emissive': f"{gbuf}.emissive",
-        'normal': f"{gbuf}.normW",
-        'depth': f"{gbuf}.linearZ",
-        'position': f"{gbuf}.posW",
-        'mvec': f"{gbuf}.mvec",
-        'pnFwidth': f"{gbuf}.pnFwidth",
-        'specRough': f"{gbuf}.specRough",
-        'diffuseOpacity': f"{gbuf}.diffuseOpacity",
-    }
-    opts = {
-        'captureCameraMat': False
-    }
-
     if not INTERACTIVE:
-        add_capture(g, pairs, start, end, opts)
+        outputs = {
+            # PathTracer
+            f"{path}.color": TextureChannelFlags.RGB,
+            f"{path}.envLight": TextureChannelFlags.RGB,
+            f"{path}.visibility": TextureChannelFlags.RGB,
+            f"{path}.albedo": TextureChannelFlags.RGB,
+            #f"{path}.indirectAlbedo": TextureChannelFlags.RGB,
+            f"{path}.reflectionPosW": TextureChannelFlags.RGB,
+            f"{path}.specularAlbedo": TextureChannelFlags.RGB,
+
+            #f"{path}.nrdEmission": TextureChannelFlags.RGB,
+            f"{path}.nrdDiffuseReflectance": TextureChannelFlags.RGB,
+            f"{path}.nrdSpecularReflectance": TextureChannelFlags.RGB,
+            f"{path}.nrdDeltaReflectionReflectance": TextureChannelFlags.RGB,
+            f"{path}.nrdDeltaReflectionEmission": TextureChannelFlags.RGB,
+            # f"{path}.nrdDeltaTransmissionReflectance": TextureChannelFlags.RGB,
+            # f"{path}.nrdDeltaTransmissionEmission": TextureChannelFlags.RGB,
+            #f"{path}.nrdDeltaTransmissionPosW": TextureChannelFlags.RGB,
+
+            # GBufferRaster
+            f"{gbuf}.emissive": TextureChannelFlags.RGB,
+            f"{gbuf}.normW": TextureChannelFlags.RGB,
+            f"{gbuf}.linearZ": TextureChannelFlags.RGB,
+            f"{gbuf}.posW": TextureChannelFlags.RGB,
+            f"{gbuf}.mvec": TextureChannelFlags.RGB,
+            f"{gbuf}.pnFwidth": TextureChannelFlags.RGB,
+            f"{gbuf}.specRough": TextureChannelFlags.RGBA,
+            f"{gbuf}.diffuseOpacity": TextureChannelFlags.RGBA,
+        }
+        for output, flag in outputs.items():
+            g.markOutput(output, flag)
 
     # Add output
     g.markOutput("PathTracer.color")
@@ -268,21 +222,9 @@ def render_svgf_optix(start, end):
     svgf = add_svgf(g, gbuffile, pathfile)
     optix = add_optix(g, gbuffile, pathfile)
 
-    # Connect input/output
-    pairs = {
-        # SVGF
-        'svgf': f"{svgf}.Filtered image",
-        # OptiX
-        'optix': f"{optix}.output"
-    }
-    opts = {
-        'captureCameraMat': False
-    }
-    add_capture(g, pairs, start, end, opts)
-
-    # # Add output
-    # g.markOutput(f"{optix}.output")
-    # g.markOutput(f"{svgf}.Filtered image")
+    # Add output
+    g.markOutput(f"{optix}.output")
+    g.markOutput(f"{svgf}.Filtered image")
 
     return g
 
@@ -444,12 +386,13 @@ elif 'Dining-room-dynamic' in NAME:
     # [-0.6, -0.0]
     start = -0.1
     end = -0.8
-    step = -0.005
-    num_frames = int((end - start) / step)
+    target_num_frames = 141
+    step = (end - start) / target_num_frames
+    dir_list = list(frange(start, end, step))
+    num_frames = len(dir_list)
     ANIM = [0, num_frames]
-    dir_list = frange(start, end, step)
 
-ANIM[1] += 3 # Add more frames
+print("ANIM = ", ANIM)
 
 if METHOD == 'input':
     graph = render_input(*ANIM)
@@ -469,8 +412,9 @@ m.scene.camera.nearPlane = 0.15 # Increase near plane to prevent Z-fighting
 
 m.clock.framerate = 60
 m.clock.time = 0
+
 if not INTERACTIVE:
-    # m.clock.pause()
+    m.frameCapture.outputDir = OUT_DIR
 
     # m.profiler.enabled = True
     if 'Dining-room-dynamic' in NAME:
@@ -483,10 +427,11 @@ if not INTERACTIVE:
                     m.renderFrame()
             else:
                 m.renderFrame()
+            m.frameCapture.baseFilename = f"{frame:04d}"
+            m.frameCapture.capture()
             frame += 1
             if frame == ANIM[1] + 1: break
     else:
-        m.frameCapture.outputDir = out_dir
         # Set start/end frame
         m.clock.frame = ANIM[0]
         m.clock.exitFrame = ANIM[1]
@@ -494,15 +439,19 @@ if not INTERACTIVE:
         num_frames = ANIM[1] - ANIM[0] + 1
 
         # frame start from 0 (global clock frame is appended by the Falcor)
-        for frame in range(num_frames):
-            if METHOD == 'ref':
+        if METHOD == 'ref':
+            m.clock.pause()
+            for frame in range(num_frames):
                 for i in range(REF_COUNT):
                     m.renderFrame()
-            else:
+                m.frameCapture.baseFilename = f"{frame:04d}"
+                m.frameCapture.capture()
+                m.clock.step()
+        else:
+            for frame in range(num_frames):
                 m.renderFrame()
-
-            m.frameCapture.baseFilename = f"{frame}"
-            m.frameCapture.capture()
+                m.frameCapture.baseFilename = f"{frame:04d}"
+                m.frameCapture.capture()
 
     # capture = m.profiler.endCapture()
     # m.profiler.enabled = False

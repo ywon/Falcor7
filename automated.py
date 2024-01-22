@@ -6,11 +6,11 @@ import sys
 import numpy as np
 import multiprocessing as mp
 from functools import partial
+import argparse
 
 import scene
 import exr
 
-import argparse
 
 
 # Function to update the variable value
@@ -131,29 +131,40 @@ def make_albedo(dest_dir):
 def scale_exposure(img, exposure):
     return img * np.power(2.0, exposure)
 
-def process(src_dir, dest_dir, frame, scene_name):
-    # Diable this because increasing scaling is done in the scene file
-    # # Tone mapping for ZeroDay
-    # if scene_name == "MEASURE_ONE" or scene_name == "MEASURE_SEVEN_COLORED_LIGHTS":
-    #     exposure = 7.0 if scene_name == "MEASURE_ONE" else 5.0
-    #     input_list = ["path", "current_demodul", "accum_demodul", "history_demodul", "emissive", "envLight", "indirectEmissive", "colorDiffuse", "colorSpecular"]
-    #     for input in input_list:
-    #         if os.path.exists(os.path.join(src_dir, f'{input}_{frame:04d}.exr')):
-    #             img = exr.read_all(os.path.join(src_dir, f'{input}_{frame:04d}.exr'))['default']
-    #             img = scale_exposure(img, exposure)
-    #             exr.write(os.path.join(dest_dir, f'{input}_{frame:04d}.exr'), img, compression=exr.ZIP_COMPRESSION)
+def process_rename(src_dir, filename, ref=False):
+    rets = filename.split('.')
+    if len(rets) < 5:
+        return
 
-    # Copy path to current
-    shutil.copy(os.path.join(src_dir, f'path_{frame:04d}.exr'), os.path.join(dest_dir, f'current_{frame:04d}.exr'))
+    frame, render_pass, field, global_frame, ext, *_ = rets
+    if ref:
+        # Swap render_pass and field for ref
+        field, render_pass = render_pass, field
+
+    # rename
+    src_path = os.path.join(src_dir, filename)
+    if not os.path.exists(src_path):
+        print(f'{src_path} not found')
+        exit(-1)
+    dst_name = f'{field}_{int(frame):04d}.exr'
+    dst_path = os.path.join(src_dir, dst_name)
+    try:
+        shutil.move(src_path, dst_path)
+    except Exception as e:
+        print('Failed to move', src_path, e)
+
+def process(src_dir, dest_dir, frame, scene_name):
+    # Copy color to current and path
+    shutil.move(os.path.join(src_dir, f'color_{frame:04d}.exr'), os.path.join(dest_dir, f'current_{frame:04d}.exr'))
+    shutil.copy(os.path.join(src_dir, f'current_{frame:04d}.exr'), os.path.join(dest_dir, f'path_{frame:04d}.exr'))
 
     # LinearZ -> Depth
-    shutil.move(os.path.join(src_dir, f'depth_{frame:04d}.exr'), os.path.join(dest_dir, f'linearZ_{frame:04d}.exr'))
     linearz_img = exr.read_all(os.path.join(src_dir, f'linearZ_{frame:04d}.exr'))['default']
     depth_img = linearz_img[:,:,0:1]
     exr.write(os.path.join(dest_dir, f'depth_{frame:04d}.exr'), depth_img, compression=exr.ZIP_COMPRESSION)
 
     # RGB to Z
-    names = ["visibility", "primarySpecular", "primaryDelta"]
+    names = ["visibility"]
     for name in names:
         path = os.path.join(src_dir, f'{name}_{frame:04d}.exr')
         if os.path.exists(path):
@@ -161,12 +172,15 @@ def process(src_dir, dest_dir, frame, scene_name):
             img = img[:,:,0:1]
             exr.write(os.path.join(dest_dir, f'{name}_{frame:04d}.exr'), img, compression=exr.ZIP_COMPRESSION)
 
+    # Rename specularAlbedo to viewAlbedo, because it's view-dependent albedo (GGX)
+    shutil.move(os.path.join(src_dir, f'specularAlbedo_{frame:04d}.exr'), os.path.join(dest_dir, f'viewAlbedo_{frame:04d}.exr'))
+
     # specRough and diffuseOpacity to roughness and opacity
     spec_img = exr.read_all(os.path.join(src_dir, f'specRough_{frame:04d}.exr'))['default']
     rough_img = spec_img[:,:,3:4]
     exr.write(os.path.join(dest_dir, f'roughness_{frame:04d}.exr'), rough_img, compression=exr.ZIP_COMPRESSION)
     exr.write(os.path.join(dest_dir, f'specularAlbedo_{frame:04d}.exr'), spec_img[:,:,0:3], compression=exr.ZIP_COMPRESSION)
-    # os.remove(os.path.join(src_dir, f'specRough_{frame:04d}.exr'))
+    os.remove(os.path.join(src_dir, f'specRough_{frame:04d}.exr'))
     diffuseOpacity_img = exr.read_all(os.path.join(src_dir, f'diffuseOpacity_{frame:04d}.exr'))['default']
     diffuse_img = diffuseOpacity_img[:,:,0:3]
     opacity_img = diffuseOpacity_img[:,:,3:4]
@@ -180,21 +194,33 @@ def process(src_dir, dest_dir, frame, scene_name):
 
 def postprocess_input(src_dir, scene_name):
     print('Post-processing the input...', end=' ', flush=True)
-    # Find maximum number of frames
+
+    # Rename original Falcor output
+    exr_list = os.listdir(src_dir)
+    exr_list = [f for f in exr_list if f.endswith('.exr')]
+    with mp.Pool(processes=mp.cpu_count()) as pool:
+        pool.starmap(process_rename, [(src_dir, f) for f in exr_list])
+    pool.close()
+
+    # Find frames
+    exr_list = os.listdir(src_dir)
+    exr_list = [f for f in exr_list if f.endswith('.exr')]
+    if len(exr_list) == 0:
+        print('No exr files found. Skip.')
+        return
+
+    # Collect frames from files
+    frames = sorted(list(set([int(f.split('.')[0].split('_')[-1]) for f in exr_list])))
     num_frames = scene.defs[scene_name]['anim'][1] - scene.defs[scene_name]['anim'][0] + 1
 
+    # Process multiprocessing
     with mp.Pool(processes=mp.cpu_count()) as pool:
-        pool.starmap(process, [(src_dir, src_dir, frame, scene_name) for frame in range(num_frames)])
-
-    # # Use nrdDeltaReflectionReflectance as albedo if primaryDelta is true, otherwise use albedo
-    # make_albedo(src_dir)
-
-    # Wait for the processes to finish
+        pool.starmap(process, [(src_dir, src_dir, frame, scene_name) for frame in frames])
     pool.close()
 
     # Remove last frames, if does not exist, ignore it
     if scene_name != "Dining-room-dynamic":
-        for frame in range(num_frames, num_frames+10):
+        for frame in range(frames[0] + num_frames, frames[0] + num_frames + 10):
             for f in os.listdir(src_dir):
                 if f.endswith(f'{frame:04d}.exr'):
                     if os.path.exists(os.path.join(src_dir, f)):
@@ -203,28 +229,39 @@ def postprocess_input(src_dir, scene_name):
     print('Done.')
 
 def process_ref(src_dir, dest_dir, frame):
+    # rename ref_color to ref
+    shutil.move(os.path.join(src_dir, f'ref_color_{frame:04d}.exr'), os.path.join(dest_dir, f'ref_{frame:04d}.exr'))
+
     # Change RGB visibility to Z
     viz = exr.read_all(os.path.join(src_dir, f'ref_visibility_{frame:04d}.exr'))['default']
     viz = viz[:,:,0:1]
     exr.write(os.path.join(dest_dir, f'ref_visibility_{frame:04d}.exr'), viz, compression=exr.ZIP_COMPRESSION)
 
-
 def postprocess_ref(src_dir, scene_name):
     print('Post-processing the ref...', end=' ', flush=True)
-    # Find maximum number of frames
+
+    # Rename original Falcor output
+    exr_list = os.listdir(src_dir)
+    exr_list = [f for f in exr_list if f.endswith('.exr')]
+    if len(exr_list) == 0:
+        print('No exr files found. Skip.')
+        return
+    with mp.Pool(processes=mp.cpu_count()) as pool:
+        pool.starmap(process_rename, [(src_dir, f, True) for f in exr_list])
+    pool.close()
+
+    # Find frames
+    exr_list = os.listdir(src_dir)
+    exr_list = [f for f in exr_list if f.endswith('.exr')]
+    if len(exr_list) == 0:
+        print('No exr files found. Skip.')
+        return
+    frames = sorted(list(set([int(f.split('.')[0].split('_')[-1]) for f in exr_list])))
     num_frames = scene.defs[scene_name]['anim'][1] - scene.defs[scene_name]['anim'][0] + 1
 
     with mp.Pool(processes=mp.cpu_count()) as pool:
-        pool.starmap(process_ref, [(src_dir, src_dir, frame) for frame in range(num_frames)])
+        pool.starmap(process_ref, [(src_dir, src_dir, frame) for frame in frames])
     pool.close()
-
-    # Remove last frames, if does not exist, ignore it
-    if scene_name != "Dining-room-dynamic":
-        for frame in range(num_frames, num_frames+10):
-            for f in os.listdir(src_dir):
-                if f.endswith(f'{frame:04d}.exr'):
-                    if os.path.exists(os.path.join(src_dir, f)):
-                        os.remove(os.path.join(src_dir, f))
 
 
 def process_exposure(input_list, exposure, frame):
@@ -245,7 +282,19 @@ if __name__ == "__main__":
     parser.add_argument('--methods', nargs='+', default=[], choices=['input', 'ref', 'svgf_optix'])
     parser.add_argument('--nas', action='store_true', default=False)
     parser.add_argument('--interactive', action='store_true', default=False)
+    parser.add_argument('--dir', default='dataset')
     args = parser.parse_args()
+
+    OUT_DIR = os.path.abspath('./output').replace('\\', '/')
+    if not os.path.exists(OUT_DIR):
+        print(f'{OUT_DIR} not found. Trying to create...')
+        try:
+            os.mkdir(OUT_DIR)
+        except:
+            print(f'Failed to create {OUT_DIR}.', 'Check if you set the correct directory OUT_DIR in automated.py')
+            exit(-1)
+
+    update_pyvariable("main.py", "OUT_DIR", OUT_DIR)
 
     if args.interactive:
         # Change method to ref
@@ -254,7 +303,6 @@ if __name__ == "__main__":
         update_pyvariable("main.py", "INTERACTIVE", True)
     else:
         update_pyvariable("main.py", "INTERACTIVE", False)
-
 
     #########################################################
     # Call build in silent mode and check if it was successful
@@ -275,66 +323,63 @@ if __name__ == "__main__":
     else:
         print('Skipped.')
 
-    dir_names = ["dataset_nrd2"]
-    # dir_names = ["dataset_nrd"]
-    for j in range(len(dir_names)):
-        print(f'Processing {dir_names[j]}...')
+    directory = args.dir
+    print(f'Generating at {directory}...')
 
-        #########################################################
-        # Call Mogwai
-        # binary_path = os.path.join("build", "windows-vs2022-d3d12", "bin", "Release", "Mogwai.exe")
-        binary_path = os.path.join("build", "windows-ninja-msvc", "bin", "Release", "Mogwai.exe")
-        binary_args = ["--script=main.py"]
-        script_dir = os.path.abspath(os.path.dirname(__file__))
-        binary_abs_path = os.path.join(script_dir, binary_path)
+    #########################################################
+    # Call Mogwai
+    binary_path = os.path.join("build", "windows-ninja-msvc", "bin", "Release", "Mogwai.exe")
+    binary_args = ["--script=main.py"]
+    script_dir = os.path.abspath(os.path.dirname(__file__))
+    binary_abs_path = os.path.join(script_dir, binary_path)
 
-        scene_names = scene.names
-        scene_numframes = scene.frames
+    scene_names = list(scene.defs.keys())
 
-        print('automated.py for scenes', scene_names)
+    print('automated.py for scenes', scene_names)
 
-        ps = {}
-        for i in range(len(scene_names)):
-            scene_name = scene_names[i]
+    ps = {}
+    for i in range(len(scene_names)):
+        scene_name = scene_names[i]
 
-            change_scene(scene_name)
+        change_scene(scene_name)
 
-            for method in args.methods:
-                change_method(method)
+        for method in args.methods:
+            change_method(method)
 
-                # Launch Mogwai
-                subprocess.run([binary_abs_path] + binary_args)
+            # Launch Mogwai
+            subprocess.run([binary_abs_path] + binary_args)
 
-                if args.nopostprocessing:
-                    continue
+            if args.interactive:
+                exit()
 
-                if  method == 'input':
-                    # Modulate
-                    postprocess_input('./output/', scene_name)
-                    pass
-                elif method == 'ref':
-                    postprocess_ref('./output/', scene_name)
+            if args.nopostprocessing:
+                continue
 
+            if  method == 'input':
+                # Modulate
+                postprocess_input(f'{OUT_DIR}/', scene_name)
+                pass
+            elif method == 'ref':
+                postprocess_ref(f'{OUT_DIR}/', scene_name)
 
-            # # Move data directory
-            # # check if the destination directory already exists
-            # dest_dir = f'./{dir_names[j]}/output_{scene_name}'
-            # print(f'Moving to {dest_dir}...', end=' ', flush=True)
-            # if os.path.exists('./output'):
-            #     if not os.path.exists(dest_dir):
-            #         os.makedirs(dest_dir)
-            #     for f in os.listdir('./output/'):
-            #         shutil.move(os.path.join('./output/', f), os.path.join(dest_dir, f))
-            #     shutil.rmtree('./output/')
-            # print('Done.')
-
-            # if args.nas:
-            #     # Move to NAS asynchronously
-            #     print('Moving to NAS...', end=' ', flush=True)
-            #     nas_dir = f'//CGLAB-NAS/NFSStorage/{dir_names[j]}/output_{scene_name}'
-            #     p = subprocess.Popen(['robocopy', dest_dir, nas_dir, '/MOVE', '/MT:12', '/R:10', '/W:10'], shell=True)
-            #     ps[p.pid] = p
-
+        # Move data directory
+        if os.path.exists(f'{OUT_DIR}'):
+            dest_dir = f'./{directory}/{scene_name}'
+            print(f'Moving to {dest_dir}...', end=' ', flush=True)
+            os.makedirs(dest_dir, exist_ok=True)
+            # Copy files explicitly for overwriting
+            for f in os.listdir(f'{OUT_DIR}/'):
+                shutil.move(os.path.join(f'{OUT_DIR}/', f), os.path.join(dest_dir, f))
+            shutil.rmtree(f'{OUT_DIR}/')
         print('Done.')
+
+        if args.nas:
+            # Move to NAS asynchronously
+            print('Moving to NAS...', end=' ', flush=True)
+            nas_dir = f'//CGLAB-NAS/NFSStorage/{directory}/{scene_name}'
+            p = subprocess.Popen(['robocopy', dest_dir, nas_dir, '/MOVE', '/MT:12', '/R:10', '/W:10'], shell=True)
+            ps[p.pid] = p
+
+    print('Done.')
 
     exit()

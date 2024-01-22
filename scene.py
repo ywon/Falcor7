@@ -1,12 +1,14 @@
 HOME_DIR = "C:/Users/hchoi/repositories"
-BITTERLI_SCENE_PATH = f"{HOME_DIR}/rt-denoiser/pbrtscenes/"
+FALCOR_DIR = f"{HOME_DIR}/Falcor/"
+MEDIA_DIR = f"{FALCOR_DIR}/media/"
+BITTERLI_SCENE_PATH = f"{FALCOR_DIR}/pbrtscenes/"
 PBRT_SCENE_PATH = f"{HOME_DIR}/pbrt-v4-scenes/"
 ORCA_PATH = f"{HOME_DIR}/ORCA/"
 
 defs = {
-    # "Arcade": {'file': "Arcade/Arcade.pyscene", 'anim':[0, 300]},
+    # "Arcade": {'file': MEDIA_DIR + "Arcade/Arcade.pyscene", 'anim':[0, 10]},
     # "BistroExterior": {'file': ORCA_PATH + "Bistro/BistroExterior.pyscene", 'anim':[0, 1]},
-    "BistroExterior2": {'file': ORCA_PATH + "Bistro/BistroExterior.pyscene", 'anim':[1400, 1410]},
+    # "BistroExterior2": {'file': ORCA_PATH + "Bistro/BistroExterior.pyscene", 'anim':[1400, 1410]},
     # "Classroom": {'file': BITTERLI_SCENE_PATH + "classroom/scene.pyscene", 'anim':[0, 300]}, # [0, 597]
     # "Dining-room": {'file': BITTERLI_SCENE_PATH + "dining-room/scene.pyscene", 'anim':[0, 300]},
     # "Dining-room-dynamic": {'file': BITTERLI_SCENE_PATH + "dining-room/scene-dynamic.pyscene", 'anim':[0, 0]},
@@ -14,11 +16,9 @@ defs = {
     # "Staircase": {'file': BITTERLI_SCENE_PATH + "staircase/scene.pyscene", 'anim':[0, 300]}, # [0, 447]
     # # "Staircase2": {'file': BITTERLI_SCENE_PATH + "staircase/scene2.pyscene", 'anim':[0, 300]},
     # "MEASURE_ONE": {'file': ORCA_PATH + "ZeroDay/MEASURE_ONE/MEASURE_ONE.pyscene", 'anim':[0, 300]}, # Exp+7
-    # "MEASURE_SEVEN_COLORED_LIGHTS": {'file': ORCA_PATH + "ZeroDay/MEASURE_SEVEN/MEASURE_SEVEN_COLORED_LIGHTS.pyscene", 'anim':[100, 101]},
+    "MEASURE_SEVEN_COLORED_LIGHTS": {'file': ORCA_PATH + "ZeroDay/MEASURE_SEVEN/MEASURE_SEVEN_COLORED_LIGHTS.pyscene", 'anim':[100, 110]},
     # "BistroExterior_dynamic": {'file': ORCA_PATH + "Bistro/BistroExterior_dynamic.pyscene", 'anim':[0, 100]},
 }
-names = list(defs.keys())
-frames = [a['anim'][1] - a['anim'][0] + 3 for a in defs.values()]
 
 tmp = {
     "VeachAjar": {'file': "VeachAjar/VeachAjar.pyscene", 'anim':[0, 0]},
