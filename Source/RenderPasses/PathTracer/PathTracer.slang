@@ -167,7 +167,7 @@ struct PathTracer
 
     /** Set guiding data when background is hit.
     */
-    static void setBackgroundGuideData(inout GuideData guideData, const float3 dir, const float3 Le, const float3 envLight)
+    static void setBackgroundGuideData(inout GuideData guideData, const float3 dir, const float3 Le) //, const float3 envLight
     {
         if (kOutputGuideData)
         {
@@ -178,7 +178,7 @@ struct PathTracer
             guideData.setSpecularAlbedo(float3(0.f));
             guideData.setIndirectAlbedo(float3(0.f));
             guideData.setReflectionPos(float3(0.f));
-            guideData.setEnvLight(envLight);
+            //guideData.setEnvLight(envLight);
         }
     }
 

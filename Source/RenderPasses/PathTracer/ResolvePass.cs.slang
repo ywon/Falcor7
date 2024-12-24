@@ -118,7 +118,8 @@ struct ResolvePass
             for (uint sampleIdx = 0; sampleIdx < spp; sampleIdx++)
             {
                 uint idx = offset + sampleIdx;
-                albedo += sampleGuideData[idx].getAlbedo();
+                //albedo += (sampleGuideData[idx].getIndirectAlbedo() + sampleGuideData[idx].getSpecularAlbedo());
+                albedo += (sampleGuideData[idx].getAlbedo() + sampleGuideData[idx].getSpecularAlbedo());
                 specularAlbedo += sampleGuideData[idx].getSpecularAlbedo();
                 indirectAlbedo += sampleGuideData[idx].getIndirectAlbedo();
                 guideNormal += sampleGuideData[idx].getGuideNormal();

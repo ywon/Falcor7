@@ -159,8 +159,8 @@ namespace Mogwai
     void FrameCapture::captureOutput(RenderContext* pRenderContext, RenderGraph* pGraph, const uint32_t outputIndex)
     {
         const std::string outputName = pGraph->getOutputName(outputIndex);
-        const std::string basename = getOutputNamePrefix(outputName) + std::to_string(mpRenderer->getGlobalClock().getFrame());
-
+        //const std::string basename = getOutputNamePrefix(outputName) + std::to_string(mpRenderer->getGlobalClock().getFrame());
+        const std::string basename = getOutputNamePrefix(outputName);
         const ref<Texture> pOutput = pGraph->getOutput(outputIndex)->asTexture();
         if (!pOutput) FALCOR_THROW("Graph output {} is not a texture", outputName);
 

@@ -30,6 +30,8 @@ import SVGFCommon;
 cbuffer PerImageCB
 {
     Texture2D gAlbedo;
+    Texture2D gDiffuseOpacity;
+    Texture2D gSpecRough;
     Texture2D gEmission;
     Texture2D gIllumination;
 };
@@ -37,6 +39,7 @@ cbuffer PerImageCB
 float4 main(FullScreenPassVsOut vsOut) : SV_TARGET0
 {
     const int2 ipos = int2(vsOut.posH.xy);
+    const float4 albedo = gDiffuseOpacity[ipos] + gSpecRough[ipos];
 
-    return gAlbedo[ipos] * gIllumination[ipos] + gEmission[ipos];
+    return albedo * gIllumination[ipos] + gEmission[ipos];
 }

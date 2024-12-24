@@ -206,7 +206,8 @@ namespace Mogwai
     std::string CaptureTrigger::getOutputNamePrefix(const std::string& output) const
     {
         auto path = getOutputPath();
-        path /= mBaseFilename + "." + output + ".";
+        //path /= mBaseFilename + "." + output + ".";
+        path /= mBaseFilename;
         return path.string();
     }
 }

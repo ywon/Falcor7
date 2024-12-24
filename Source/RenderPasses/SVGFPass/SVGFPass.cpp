@@ -56,6 +56,8 @@ const char kMomentsAlpha[] = "MomentsAlpha";
 
 // Input buffer names
 const char kInputBufferAlbedo[] = "Albedo";
+const char kInputBufferDiffuseOpacity[] = "DiffuseOpacity";
+const char kInputBufferSpecRough[] = "SpecRough";
 const char kInputBufferColor[] = "Color";
 const char kInputBufferEmission[] = "Emission";
 const char kInputBufferWorldPosition[] = "WorldPosition";
@@ -141,6 +143,8 @@ RenderPassReflection SVGFPass::reflect(const CompileData& compileData)
     RenderPassReflection reflector;
 
     reflector.addInput(kInputBufferAlbedo, "Albedo");
+    reflector.addInput(kInputBufferDiffuseOpacity, "DiffuseOpacity");
+    reflector.addInput(kInputBufferSpecRough, "SpecRough");
     reflector.addInput(kInputBufferColor, "Color");
     reflector.addInput(kInputBufferEmission, "Emission");
     reflector.addInput(kInputBufferWorldPosition, "World Position");
@@ -173,6 +177,8 @@ void SVGFPass::compile(RenderContext* pRenderContext, const CompileData& compile
 void SVGFPass::execute(RenderContext* pRenderContext, const RenderData& renderData)
 {
     ref<Texture> pAlbedoTexture = renderData.getTexture(kInputBufferAlbedo);
+    ref<Texture> pDiffuseOpacityTexture = renderData.getTexture(kInputBufferDiffuseOpacity);
+    ref<Texture> pSpecRoughTexture = renderData.getTexture(kInputBufferSpecRough);
     ref<Texture> pColorTexture = renderData.getTexture(kInputBufferColor);
     ref<Texture> pEmissionTexture = renderData.getTexture(kInputBufferEmission);
     ref<Texture> pWorldPositionTexture = renderData.getTexture(kInputBufferWorldPosition);
@@ -229,6 +235,8 @@ void SVGFPass::execute(RenderContext* pRenderContext, const RenderData& renderDa
         // Compute albedo * filtered illumination and add emission back in.
         auto perImageCB = mpFinalModulate->getRootVar()["PerImageCB"];
         perImageCB["gAlbedo"] = pAlbedoTexture;
+        perImageCB["gDiffuseOpacity"] = pDiffuseOpacityTexture;
+        perImageCB["gSpecRough"] = pSpecRoughTexture;
         perImageCB["gEmission"] = pEmissionTexture;
         perImageCB["gIllumination"] = mpPingPongFbo[0]->getColorTexture(0);
         mpFinalModulate->execute(pRenderContext, mpFinalFbo);

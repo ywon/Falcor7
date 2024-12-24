@@ -42,6 +42,8 @@ cbuffer PerImageCB
     Texture2D gPositionNormalFwidth;
     Texture2D gColor;
     Texture2D gAlbedo;
+    Texture2D gDiffuseOpacity;
+    Texture2D gSpecRough;
     Texture2D gEmission;
     Texture2D gPrevIllum;
     Texture2D gPrevMoments;
@@ -55,8 +57,20 @@ cbuffer PerImageCB
 
 float3 demodulate(float3 c, float3 albedo)
 {
-    return c / max(albedo, float3(0.001, 0.001, 0.001));
+    //return c / max(albedo, float3(0.001, 0.001, 0.001));
+    float3 ret;
+    bool3 zeroAlbedo = albedo == 0.0f;
+
+    if (zeroAlbedo.x) ret.x = c.x;
+    else ret.x = c.x / max(albedo.x, 0.001f);
+    if (zeroAlbedo.y) ret.y = c.y;
+    else ret.y = c.y / max(albedo.y, 0.001f);
+    if (zeroAlbedo.z) ret.z = c.z;
+    else ret.z = c.z / max(albedo.z, 0.001f);
+
+    return ret;
 }
+
 
 bool isReprjValid(int2 coord, float Z, float Zprev, float fwidthZ, float3 normal, float3 normalPrev, float fwidthNormal)
 {
@@ -195,14 +209,17 @@ struct PS_OUT
     float4 OutIllumination : SV_TARGET0;
     float2 OutMoments : SV_TARGET1;
     float OutHistoryLength : SV_TARGET2;
+    float4 OutDemodulation : SV_TARGET3;
 };
 
 PS_OUT main(FullScreenPassVsOut vsOut)
 {
     const float4 posH = vsOut.posH;
     const int2 ipos = posH.xy;
+    const float3 albedo = gDiffuseOpacity[ipos].rgb + gSpecRough[ipos].rgb;
 
     float3 illumination = demodulate(gColor[ipos].rgb - gEmission[ipos].rgb, gAlbedo[ipos].rgb);
+    float3 demodul = demodulate(gColor[ipos].rgb - gEmission[ipos].rgb, albedo);
     // Workaround path tracer bugs. TODO: remove this when we can.
     if (isNaN(illumination.x) || isNaN(illumination.y) || isNaN(illumination.z))
     {
@@ -242,6 +259,7 @@ PS_OUT main(FullScreenPassVsOut vsOut)
     psOut.OutIllumination.a = variance;
     psOut.OutMoments = moments;
     psOut.OutHistoryLength = historyLength;
+    psOut.OutDemodulation = float4(demodul, 0.f);
 
     return psOut;
 }

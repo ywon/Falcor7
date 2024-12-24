@@ -209,12 +209,12 @@ struct PathGenerator
     {
         // Evaluate background color for the current pixel.
         float3 color = float3(0.f);
-        float3 envLight = float3(0.f);
+        //float3 envLight = float3(0.f);
         if (kUseEnvLight)
         {
             // HJ: Skip adding envmap to the color buffer. Instead, it'll be set in guideData.
-            // color = gScene.envMap.eval(dir);
-            envLight = gScene.envMap.eval(dir);
+            color = gScene.envMap.eval(dir);
+            //envLight = gScene.envMap.eval(dir);
         }
 
         // Write color and denoising guide data for all samples in pixel.
@@ -233,7 +233,8 @@ struct PathGenerator
 
             if (kOutputGuideData)
             {
-                PathTracer::setBackgroundGuideData(sampleGuideData[outIdx + i], dir, color, envLight);
+                //PathTracer::setBackgroundGuideData(sampleGuideData[outIdx + i], dir, color, envLight);
+                PathTracer::setBackgroundGuideData(sampleGuideData[outIdx + i], dir, color);
             }
 
             if (kOutputNRDData)

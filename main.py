@@ -2,14 +2,14 @@ from falcor import *
 
 import os
 
-OUT_DIR = "C:/Users/hchoi/repositories/Falcor/output"
+OUT_DIR = "C:/Users/cglab/Desktop/Falcor7/output"
 
 INTERACTIVE = False
 
-NAME = "MEASURE_SEVEN_COLORED_LIGHTS"
-FILE = "C:/Users/hchoi/repositories/ORCA/ZeroDay/MEASURE_SEVEN/MEASURE_SEVEN_COLORED_LIGHTS.pyscene"
-ANIM = [100, 110]
-METHOD = "input"
+NAME = "BistroExterior2"
+FILE = "C:/Users/cglab/Desktop/YW/scenes/Bistro_v5_2/BistroExterior.pyscene"
+ANIM = [1400, 1410]
+METHOD = "ref"
 REF_COUNT = 8192
 FILELOAD_STARTFRAME = 0
 
