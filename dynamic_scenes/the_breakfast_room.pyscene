@@ -1,0 +1,56 @@
+# Load scene
+sceneBuilder.importScene("scene-v4.pbrt")
+
+# Create animation
+# anim_time = 3.333333 # 100 frames for 30 FPS
+anim_time = 100 # * 60 fps = 600 frames
+camera = sceneBuilder.selectedCamera
+
+def add_animation_using_transform(transforms):
+    if "counter" not in add_animation_using_transform.__dict__:
+        add_animation_using_transform.counter = 0
+
+    anim = sceneBuilder.createAnimation(camera,
+                                        f"motion{add_animation_using_transform.counter}",
+                                        anim_time)
+    if anim is None:
+        raise Exception("name of anim", f"motion{add_animation_using_transform.counter}")
+    time_per_keyframe = anim_time/(len(transforms) - 1)
+    times = [x * time_per_keyframe for x in range(len(transforms))]
+    for time, transform in zip(times, transforms):
+        anim.addKeyframe(time, transform)
+
+    sceneBuilder.addAnimation(anim)
+
+    add_animation_using_transform.counter += 1
+
+# Set this using Mogwai viewports
+transforms = [
+Transform(position = float3(-0.587318, 2.7623, 9.71429), target = float3(-0.57426, 2.69844, 8.71642), up = float3(0.000835628, 0.997958, -0.0638575)),
+Transform(position = float3(-2.67647, 4.81674, 3.32613), target = float3(-2.95779, 5.06484, 2.39914), up = float3(-0.00184973, 0.99998, -0.00606108)),
+Transform(position = float3(-3.38746, 5.95129, 5.31501), target = float3(-3.33091, 5.29573, 4.56199), up = float3(-9.28207e-05, 0.999999, 0.00113694)),
+Transform(position = float3(-4.57004, 6.45863, 6.74733), target = float3(-3.76158, 6.03116, 6.34279), up = float3(0.00326381, 0.999993, -0.00163742)),
+Transform(position = float3(-2.39234, 4.89533, -1.23172), target = float3(-1.86297, 4.73697, -2.0652), up = float3(-0.00612506, 0.999935, 0.00964379)),
+Transform(position = float3(-2.59428, 5.10759, -1.93048), target = float3(-2.30444, 5.17559, -0.975829), up = float3(-0.0021679, 0.999972, -0.00722848)),
+Transform(position = float3(-2.36377, 5.38671, -2.38156), target = float3(-1.58721, 4.76315, -2.29143), up = float3(0.00748114, 0.999972, 0.000868264)),
+Transform(position = float3(-0.998425, 3.40902, -2.92409), target = float3(-0.795293, 2.48906, -2.58882), up = float3(0.00175129, 0.999994, 0.00289736)),
+Transform(position = float3(0.0710752, 5.48371, -3.24622), target = float3(-0.210592, 4.52605, -3.1867), up = float3(-0.000851506, 1, 0.000193214)),
+Transform(position = float3(2.04862, 7.53168, 3.55583), target = float3(1.86009, 6.80862, 2.89127), up = float3(-0.000190535, 1, -0.000670285)),
+Transform(position = float3(0.517011, 7.72636, 4.42167), target = float3(0.244161, 7.5538, 3.47522), up = float3(0.000818019, 0.999996, 0.0028627)),
+Transform(position = float3(-2.69137, 4.11242, 0.186957), target = float3(-3.16672, 3.56037, -0.498085), up = float3(-0.0215903, 0.999283, -0.0311148)),
+Transform(position = float3(1.08121, 4.11242, 0.823905), target = float3(1.17438, 3.2837, 0.272058), up = float3(-9.26838e-05, 1, 0.00055601)),
+Transform(position = float3(4.79286, 2.35952, -1.43347), target = float3(3.79721, 2.30905, -1.5118), up = float3(-0.00853458, 0.999963, -0.00067143)),
+Transform(position = float3(4.30502, 2.87398, -1.78231), target = float3(3.67554, 3.47476, -2.27508), up = float3(-0.00126807, 0.999999, -0.000991642)),
+Transform(position = float3(3.11086, 1.95285, 5.52848), target = float3(2.49451, 1.89673, 4.74301), up = float3(0.00673872, 0.999939, 0.00877438)),
+Transform(position = float3(-6.06042, 2.0555, 2.19881), target = float3(-5.18798, 2.05892, 1.71011), up = float3(0, 1, 0)),
+Transform(position = float3(-5.68979, 0.850028, 0.396184), target = float3(-5.52132, 0.302085, -0.423192), up = float3(0, 1, 0)),
+Transform(position = float3(-5.34118, -1.2786, 2.38504), target = float3(-4.82855, -0.667503, 1.78191), up = float3(0.00616458, 0.999955, -0.00723397)),
+Transform(position = float3(-5.88625, -1.257, -1.78616), target = float3(-4.93766, -0.941747, -1.75808), up = float3(-0.0105515, 0.999944, -0.000408922)),
+]
+
+add_animation_using_transform(transforms)
+
+
+
+
+

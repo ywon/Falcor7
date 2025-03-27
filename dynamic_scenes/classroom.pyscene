@@ -1,0 +1,49 @@
+# Load scene
+sceneBuilder.importScene("scene-v4.pbrt")
+
+# Create animation
+# anim_time = 3.333333 # 100 frames for 30 FPS
+anim_time = 100 # * 64 fps = 6400 frames
+camera = sceneBuilder.selectedCamera
+def add_animation_using_transform(transforms):
+    if "counter" not in add_animation_using_transform.__dict__:
+        add_animation_using_transform.counter = 0
+
+    anim = sceneBuilder.createAnimation(camera,
+                                        f"motion{add_animation_using_transform.counter}",
+                                        anim_time)
+    if anim is None:
+        raise Exception("name of anim", f"motion{add_animation_using_transform.counter}")
+    time_per_keyframe = anim_time/(len(transforms) - 1)
+    times = [x * time_per_keyframe for x in range(len(transforms))]
+    for time, transform in zip(times, transforms):
+        anim.addKeyframe(time, transform)
+
+    sceneBuilder.addAnimation(anim)
+
+    add_animation_using_transform.counter += 1
+
+transforms = [
+Transform(position = float3(-1.69049, 1.27158, 5.88653), target = float3(-1.53919, 1.29988, 4.89845), up = float3(-0.00428443, 0.9996, 0.027981)),
+Transform(position = float3(-3.19256, 1.39849, 1.47641), target = float3(-3.22924, 1.37596, 0.477339), up = float3(-5.58679e-05, 0.999999, -0.00151074)),
+Transform(position = float3(2.34967, 0.656637, -5.49395), target = float3(3.31953, 0.417276, -5.44839), up = float3(-0.0029309, 0.999996, -0.000138438)),
+Transform(position = float3(2.43515, 2.42904, -4.1617), target = float3(2.78808, 2.19237, -3.25648), up = float3(-0.000884749, 0.999997, -0.00228154)),
+Transform(position = float3(-1.25064, 1.86411, -4.11004), target = float3(-2.15573, 1.8641, -4.53525), up = float3(0.00453531, 0.999987, 0.00219883)),
+Transform(position = float3(0.384694, 1.07311, 0.367059), target = float3(0.815378, 0.911853, 1.25504), up = float3(-0.000217067, 1, -0.000447547)),
+Transform(position = float3(-1.20005, 1.29757, 5.27549), target = float3(-0.445316, 1.2663, 4.6202), up = float3(0.000378288, 1, -0.000332792)),
+Transform(position = float3(-6.34074, 2.32428, 2.40491), target = float3(-5.45681, 2.08294, 2.0044), up = float3(0.0102703, 0.999936, -0.00466635)),
+Transform(position = float3(5.50052, 2.65178, 0.631134), target = float3(5.34574, 2.38096, -0.318971), up = float3(-0.00169552, 0.999948, -0.010076)),
+Transform(position = float3(-1.97331, 1.07062, 0.203472), target = float3(-2.71639, 0.875947, -0.436789), up = float3(-0.000374562, 1, -0.000322734)),
+Transform(position = float3(-4.58669, 1.6342, -4.03223), target = float3(-3.59678, 1.53946, -4.13759), up = float3(0.000997958, 1, -0.00010622)),
+Transform(position = float3(-1.33672, 1.55472, -1.70984), target = float3(-1.97387, 1.37848, -0.959517), up = float3(0.00127859, 0.999998, -0.00151687)),
+Transform(position = float3(0.796413, 1.86388, -2.16373), target = float3(0.319274, 2.52798, -1.58813), up = float3(0.00096326, 0.999999, -0.00116204)),
+Transform(position = float3(1.13332, 1.11338, 1.26163), target = float3(0.565826, 0.290119, 1.27525), up = float3(-0.0190997, 0.999817, 0.000499547)),
+Transform(position = float3(3.04234, 2.12668, -2.9552), target = float3(2.12441, 2.50438, -3.07661), up = float3(0.000924326, 1, 0.000132319)),
+Transform(position = float3(-2.6777, 2.12811, 3.27192), target = float3(-3.14964, 2.21627, 4.14914), up = float3(-0.000478459, 1, 0.000882718)),
+Transform(position = float3(6.08309, 2.58065, 1.13092), target = float3(5.74305, 2.05512, 1.91079), up = float3(-0.000342957, 1, 0.000786548)),
+Transform(position = float3(-3.17698, 1.42345, 0.233477), target = float3(-3.42452, 1.55672, -0.726189), up = float3(0, 1, 0)),
+Transform(position = float3(-1.16538, 1.72226, -1.73248), target = float3(-1.65037, 2.11618, -2.51326), up = float3(0, 1, 0)),
+Transform(position = float3(0.47126, 1.72222, -1.49451), target = float3(0.330514, 1.92998, -0.526509), up = float3(0.0003784, 0.999997, -0.00243726)),
+]
+
+add_animation_using_transform(transforms)

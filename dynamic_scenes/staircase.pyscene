@@ -1,0 +1,56 @@
+# Load scene
+sceneBuilder.importScene("scene-v4.pbrt")
+
+# Create animation
+# anim_time = 3.333333 # 100 frames for 30 FPS
+anim_time = 100 # * 60 fps = 600 frames
+camera = sceneBuilder.selectedCamera
+
+def add_animation_using_transform(transforms):
+    if "counter" not in add_animation_using_transform.__dict__:
+        add_animation_using_transform.counter = 0
+
+    anim = sceneBuilder.createAnimation(camera,
+                                        f"motion{add_animation_using_transform.counter}",
+                                        anim_time)
+    if anim is None:
+        raise Exception("name of anim", f"motion{add_animation_using_transform.counter}")
+    time_per_keyframe = anim_time/(len(transforms) - 1)
+    times = [x * time_per_keyframe for x in range(len(transforms))]
+    for time, transform in zip(times, transforms):
+        anim.addKeyframe(time, transform)
+
+    sceneBuilder.addAnimation(anim)
+
+    add_animation_using_transform.counter += 1
+
+# Set this using Mogwai viewports
+transforms = [
+Transform(position = float3(0.0324209, 1.52673, 4.88197), target = float3(0.0247749, 1.57178, 3.88301), up = float3(0.000344841, 0.998984, 0.0450537)),
+Transform(position = float3(0.000662394, 1.71387, 0.732703), target = float3(-0.822345, 1.79599, 0.170639), up = float3(-0.000412865, 1, -0.00028608)),
+Transform(position = float3(0.352971, 2.16544, 0.235767), target = float3(0.817588, 2.76097, -0.419581), up = float3(-0.00211411, 0.999993, 0.00298032)),
+Transform(position = float3(-0.927553, 1.03015, -1.40598), target = float3(-0.710662, 1.04697, -2.38203), up = float3(0.000765193, 0.999994, -0.00344351)),
+Transform(position = float3(-1.26018, 1.00206, 0.114284), target = float3(-0.571392, 1.01754, 0.839079), up = float3(0.000694314, 0.999999, 0.000730605)),
+Transform(position = float3(0.692273, 3.58397, -1.83827), target = float3(1.15272, 4.27007, -2.40151), up = float3(-0.000233217, 1, 0.00028317)),
+Transform(position = float3(2.31303, 2.26621, -1.12197), target = float3(1.59348, 2.82837, -1.52969), up = float3(-0.000362616, 1, -0.000205342)),
+Transform(position = float3(-0.967095, 4.90037, -2.67493), target = float3(-1.68825, 5.26117, -2.08353), up = float3(-0.0014538, 0.999998, 0.00119034)),
+Transform(position = float3(-3.92106, 3.80949, -3.83812), target = float3(-2.92742, 3.84682, -3.73187), up = float3(-0.00350287, 0.999994, -0.000405048)),
+Transform(position = float3(-4.01748, 3.58942, -1.04139), target = float3(-3.29386, 3.98223, -1.60891), up = float3(0.000729166, 1, -0.000571863)),
+Transform(position = float3(-1.67321, 3.64703, -1.3666), target = float3(-0.85683, 3.07496, -1.44569), up = float3(0.00827655, 0.999965, -0.0008062)),
+Transform(position = float3(-1.02994, 4.83424, -1.87403), target = float3(-0.647999, 5.70445, -2.18525), up = float3(-0.0031019, 0.999992, 0.00252748)),
+Transform(position = float3(-0.448209, 4.5955, 0.27163), target = float3(-0.400069, 4.76268, -0.71312), up = float3(0, 1, 0)),
+Transform(position = float3(1.41953, 5.0607, 0.284668), target = float3(1.11468, 4.30595, -0.296205), up = float3(0.00152614, 0.999995, 0.00291906)),
+Transform(position = float3(0.320176, 3.54406, 0.698034), target = float3(-0.175639, 2.74484, 1.03775), up = float3(-0.000507008, 1, 0.000332638)),
+Transform(position = float3(-0.599967, 3.8742, 4.17526), target = float3(-0.202755, 3.2785, 3.47715), up = float3(0.00301246, 0.999981, -0.00530416)),
+Transform(position = float3(-0.777895, 0.75173, -1.82053), target = float3(-1.09268, 0.330272, -2.67099), up = float3(-0.000316345, 1, -0.000858123)),
+Transform(position = float3(1.17244, 0.110602, 0.423114), target = float3(0.683137, 0.583678, -0.309542), up = float3(0.00595953, 0.999943, 0.00890836)),
+Transform(position = float3(0.758701, 0.92476, -0.957027), target = float3(1.32591, 1.6757, -1.29519), up = float3(0, 1, 0)),
+Transform(position = float3(-0.126265, 2.94102, -3.93521), target = float3(0.345064, 3.66026, -4.44565), up = float3(0.000475038, 1, -0.000513916)),
+]
+
+add_animation_using_transform(transforms)
+
+
+
+
+
